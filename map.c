@@ -69,13 +69,6 @@ T Map_generate(int width, int height, int intensity)
             map->data[coord_to_index(x, y, width)] = nearest_type;
         }
     }
-    for (int y = 1; y < height - 1; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            
-        }
-    }
 
     return map;
 }

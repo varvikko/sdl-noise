@@ -4,6 +4,7 @@
 
 #include "texture.h"
 #include "map.h"
+#include "util.h"
 
 #define WINDOW_TITLE "SDL Noise"
 #define WINDOW_WIDTH 1280
@@ -61,19 +62,17 @@ Texture_T ground_right;
 
 Map_T map;
 
-float cam_vel_x;
-float cam_vel_y;
-
 float cam_x;
 float cam_y;
 
-int mouse_x;
-int mouse_y;
-
-float zoom = 1.0f;
+float zoom = 2.5f;
 
 int main(void)
 {
+#ifndef DEBUG
+    seed();
+#endif
+
     if (!initialize())
     {
         return 0;
@@ -195,11 +194,6 @@ void run(void)
                     map = Map_generate(100, 100, 200);
                 }
             }
-            else if (event.type == SDL_MOUSEMOTION)
-            {
-                SDL_GetMouseState(&mouse_x, &mouse_y);
-                // printf("%d %d\n", mouse_x, mouse_y);
-            }
         }
 
         if (keyboard[SDL_SCANCODE_LEFT])
@@ -240,11 +234,6 @@ void run(void)
 
 void update(void)
 {
-    cam_x += cam_vel_x;
-    cam_y += cam_vel_y;
-
-    cam_vel_x *= 0.98f;
-    cam_vel_y *= 0.98f;
 }
 
 void draw(void)
@@ -255,7 +244,6 @@ void draw(void)
     int tile_width = 18;
     int tile_height = 18;
 
-    int cnt = 0;
     for (int y = 0; y < 100; y++)
     {
         for (int x = 0; x < 100; x++)
@@ -263,45 +251,6 @@ void draw(void)
             int cell_type = Map_cell_type(map, x, y);
             float draw_x = x * tile_width * zoom;
             float draw_y = y * tile_height * zoom;
-
-            if (mouse_x >= draw_x && mouse_x < draw_x + tile_width && mouse_y >= draw_y && mouse_y < draw_y + tile_height)
-            {
-                printf("mouse inside block at %d %d\n", (int)draw_x / tile_width, (int)draw_y / tile_height);
-
-                int top = Map_cell_type(map, x, y - 1);
-                int bottom = Map_cell_type(map, x, y + 1);
-                int left = Map_cell_type(map, x - 1, y);
-                int right = Map_cell_type(map, x + 1, y);
-
-                int top_left = Map_cell_type(map, x - 1, y - 1);
-                int top_right = Map_cell_type(map, x + 1, y - 1);
-                int bottom_left = Map_cell_type(map, x - 1, y + 1);
-                int bottom_right = Map_cell_type(map, x + 1, y + 1);
-
-                printf("%d %d %d\n%d _ %d\n%d %d %d\n", top_left, top, top_right, left, right, bottom_left, bottom, bottom_right);
-
-                int type = 0;
-                /*
-                    not topleft, not top, not topright = 0b0111
-                */
-
-                if (!top)
-                {
-                    type |= 0b0010;
-                }
-                if (!top_left)
-                {
-                    type |= 0b0100;
-                }
-                if (!top_right)
-                {
-                    type |= 0b0001;
-                }
-                printf("%d\n", type);
-
-                continue;
-            }
-
             if (cell_type)
             {
 
@@ -321,43 +270,60 @@ void draw(void)
                 if (!right)
                     type |= RIGHT;
 
-                if (type == GRASS_TOP_LEFT)
-                    Texture_draw(grass_top_left, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS_TOP_RIGHT)
-                    Texture_draw(grass_top_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS_TOP)
-                    Texture_draw(grass_top, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS_TOP_LEFT_RIGHT)
-                    Texture_draw(grass_top_left_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS_LEFT)
-                    Texture_draw(grass_left, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS_RIGHT)
-                    Texture_draw(grass_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS_TOP_BOTTOM)
-                    Texture_draw(grass_top_bottom, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
+                Texture_T tile;
+                switch (type)
+                {
+                case GRASS_TOP_LEFT:
+                    tile = grass_top_left;
+                    break;
+                case GRASS_TOP_RIGHT:
+                    tile = grass_top_right;
+                    break;
+                case GRASS_TOP:
+                    tile = grass_top;
+                    break;
+                case GRASS_TOP_LEFT_RIGHT:
+                    tile = grass_top_left_right;
+                    break;
+                case GRASS_LEFT:
+                    tile = grass_left;
+                    break;
+                case GRASS_RIGHT:
+                    tile = grass_right;
+                    break;
+                case GRASS_TOP_BOTTOM:
+                    tile = grass_top_bottom;
+                    break;
+                case GROUND_BOTTOM:
+                    tile = ground_bottom;
+                    break;
+                case GROUND_BOTTOM_LEFT:
+                    tile = ground_bottom_left;
+                    break;
+                case GROUND_BOTTOM_RIGHT:
+                    tile = ground_bottom_right;
+                    break;
+                case GROUND_LEFT:
+                    tile = ground_left;
+                    break;
+                case GROUND_RIGHT:
+                    tile = ground_right;
+                    break;
+                case GROUND_LEFT_RIGHT:
+                    tile = ground_left_right;
+                    break;
+                case GROUND_BOTTOM_LEFT_RIGHT:
+                    tile = ground_bottom_left_right;
+                    break;
+                case GRASS:
+                    tile = grass;
+                    break;
+                default:
+                    tile = ground;
+                }
 
-                else if (type == GROUND_BOTTOM)
-                    Texture_draw(ground_bottom, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GROUND_BOTTOM_LEFT)
-                    Texture_draw(ground_bottom_left, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GROUND_BOTTOM_RIGHT)
-                    Texture_draw(ground_bottom_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GROUND_LEFT)
-                    Texture_draw(ground_left, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GROUND_RIGHT)
-                    Texture_draw(ground_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-
-                else if (type == GROUND_LEFT_RIGHT)
-                    Texture_draw(ground_left_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GROUND_BOTTOM_LEFT_RIGHT)
-                    Texture_draw(ground_bottom_left_right, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else if (type == GRASS)
-                    Texture_draw(grass, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
-                else
-                    Texture_draw(ground, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
+                Texture_draw(tile, renderer, draw_x + cam_x, draw_y + cam_y, zoom);
             }
-
-            cnt++;
         }
     }
 
